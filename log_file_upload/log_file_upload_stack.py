@@ -1,19 +1,39 @@
-from aws_cdk import (
-    # Duration,
-    Stack,
-    # aws_sqs as sqs,
-)
+import aws_cdk as cdk
+import aws_cdk.aws_s3 as s3
+import aws_cdk.aws_lambda as lambda_
+from aws_cdk import aws_apigateway as apigw
+
+
 from constructs import Construct
 
-class LogFileUploadStack(Stack):
+class LogFileUploadStack(cdk.Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # The code that defines your stack goes here
+        # S3 Buckets
+        uncompressed_bucket = s3.Bucket(self, "UncompressedBucket")
+        compressed_bucket = s3.Bucket(self, "CompressedBucket")
 
-        # example resource
-        # queue = sqs.Queue(
-        #     self, "LogFileUploadQueue",
-        #     visibility_timeout=Duration.seconds(300),
-        # )
+        # Lambda Function to process log file content
+        process_lambda = lambda_.Function(
+            self, "ProcessLambda",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="process.handler",
+            code=lambda_.Code.from_asset("log_file_upload/lambda"),
+            environment={
+                'UNCOMPRESSED_BUCKET': uncompressed_bucket.bucket_name,
+                'COMPRESSED_BUCKET': compressed_bucket.bucket_name
+            }
+        )
+
+        # Grant Lambda permissions to write to S3 buckets
+        uncompressed_bucket.grant_write(process_lambda)
+        compressed_bucket.grant_write(process_lambda)
+
+        # API Gateway
+        api = apigw.RestApi(self, 'LogUploadApi')
+
+        # Define API Gateway method to handle POST requests
+        log_resource = api.root.add_resource('log')
+        log_resource.add_method('POST', apigw.LambdaIntegration(process_lambda))
