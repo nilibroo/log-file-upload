@@ -5,8 +5,13 @@ import traceback
 import boto3
 import os
 
-s3 = boto3.client('s3')
+s3 = None
 
+def get_s3_client():
+    global s3
+    if not s3:
+        s3 = boto3.client('s3')
+    return s3
 
 def handler(event, context):
     try:
@@ -22,7 +27,7 @@ def handler(event, context):
         # Store compressed log file in compressed S3 bucket
         timestamp = event['timestamp']
         file_name = f"log_file_{timestamp}.txt.gz"
-        s3.put_object(Bucket=compressed_bucket_name, Key=file_name, Body=compressed_content)
+        get_s3_client().put_object(Bucket=compressed_bucket_name, Key=file_name, Body=compressed_content)
 
         return {
             'statusCode': 200,

@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./log_file_upload/lambda",
+        "./log_file_upload"
+    ]
+}

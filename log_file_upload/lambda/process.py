@@ -4,8 +4,14 @@ import traceback
 import boto3
 import os
 
-s3 = boto3.client('s3')
+s3 = None
 
+# Insanciate s3 client globally and lazily
+def get_s3_client():
+    global s3
+    if not s3:
+        s3 = boto3.client('s3')
+    return s3
 
 def handler(event, context):
     try:
@@ -22,7 +28,7 @@ def handler(event, context):
         # Store log file in uncompressed S3 bucket
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         file_name = f"log_file_{timestamp}.txt"
-        s3.put_object(Bucket=uncompressed_bucket_name, Key=file_name, Body=log_content)
+        get_s3_client().put_object(Bucket=uncompressed_bucket_name, Key=file_name, Body=log_content)
 
         # Trigger another Lambda function to handle compression
         payload = {
@@ -41,7 +47,7 @@ def handler(event, context):
         response_payload = json.loads(response['Payload'].read())
         if response_payload['statusCode'] != 200:
             # Handle the error returned from the compress Lambda
-            raise Exception(f"Error from compress Lambda: {response_payload}")
+            raise Exception(f"Error from compress Lambda: {response_payload['body']}")
 
         return {
             'statusCode': 200,

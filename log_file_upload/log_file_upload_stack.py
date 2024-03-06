@@ -23,7 +23,6 @@ class LogFileUploadStack(cdk.Stack):
             code=lambda_.Code.from_asset("log_file_upload/lambda"),
             
             environment={
-                'UNCOMPRESSED_BUCKET': uncompressed_bucket.bucket_name,
                 'COMPRESSED_BUCKET': compressed_bucket.bucket_name
             }
         )
@@ -37,7 +36,6 @@ class LogFileUploadStack(cdk.Stack):
             
             environment={
                 'UNCOMPRESSED_BUCKET': uncompressed_bucket.bucket_name,
-                'COMPRESSED_BUCKET': compressed_bucket.bucket_name,
                 'COMPRESS_LAMBDA_ARN': compress_lambda.function_arn,
             }
         )
